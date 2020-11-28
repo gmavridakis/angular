@@ -12,6 +12,9 @@
     "name": "EMPTY_OBJ"
   },
   {
+    "name": "InjectFlags"
+  },
+  {
     "name": "NG_COMP_DEF"
   },
   {
@@ -31,6 +34,9 @@
   },
   {
     "name": "NodeInjectorFactory"
+  },
+  {
+    "name": "RuntimeError"
   },
   {
     "name": "SimpleChange"
@@ -55,6 +61,9 @@
   },
   {
     "name": "_renderCompCount"
+  },
+  {
+    "name": "allocExpando"
   },
   {
     "name": "allocLFrame"
@@ -108,9 +117,6 @@
     "name": "extractPipeDef"
   },
   {
-    "name": "getCheckNoChangesMode"
-  },
-  {
     "name": "getClosureSafeProperty"
   },
   {
@@ -121,6 +127,12 @@
   },
   {
     "name": "getCurrentTNode"
+  },
+  {
+    "name": "getCurrentTNodePlaceholderOk"
+  },
+  {
+    "name": "getDeclarationTNode"
   },
   {
     "name": "getFirstLContainer"
@@ -159,6 +171,9 @@
     "name": "invertObject"
   },
   {
+    "name": "isInCheckNoChangesMode"
+  },
+  {
     "name": "isProceduralRenderer"
   },
   {
@@ -187,6 +202,9 @@
   },
   {
     "name": "refreshView"
+  },
+  {
+    "name": "registerHostBindingOpCodes"
   },
   {
     "name": "rememberChangeHistoryAndInvokeOnChangesHook"
@@ -223,5 +241,8 @@
   },
   {
     "name": "viewAttachedToChangeDetector"
+  },
+  {
+    "name": "ɵɵtext"
   }
 ]

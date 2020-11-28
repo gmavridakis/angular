@@ -15,6 +15,9 @@
     "name": "EMPTY_OBJ"
   },
   {
+    "name": "InjectFlags"
+  },
+  {
     "name": "Module"
   },
   {
@@ -37,6 +40,9 @@
   },
   {
     "name": "NodeInjectorFactory"
+  },
+  {
+    "name": "RuntimeError"
   },
   {
     "name": "SimpleChange"
@@ -69,10 +75,10 @@
     "name": "addComponentLogic"
   },
   {
-    "name": "addHostBindingsToExpandoInstructions"
+    "name": "addToViewTree"
   },
   {
-    "name": "addToViewTree"
+    "name": "allocExpando"
   },
   {
     "name": "allocLFrame"
@@ -85,9 +91,6 @@
   },
   {
     "name": "autoRegisterModuleById"
-  },
-  {
-    "name": "baseResolveDirective"
   },
   {
     "name": "callHook"
@@ -103,6 +106,9 @@
   },
   {
     "name": "concatStringsWithSpace"
+  },
+  {
+    "name": "configureViewWithDirective"
   },
   {
     "name": "createLFrame"
@@ -147,16 +153,10 @@
     "name": "findAttrIndexInNode"
   },
   {
-    "name": "generateExpandoInstructionBlock"
-  },
-  {
     "name": "generateInitialInputs"
   },
   {
     "name": "generatePropertyAliases"
-  },
-  {
-    "name": "getCheckNoChangesMode"
   },
   {
     "name": "getClosureSafeProperty"
@@ -172,6 +172,12 @@
   },
   {
     "name": "getCurrentTNode"
+  },
+  {
+    "name": "getCurrentTNodePlaceholderOk"
+  },
+  {
+    "name": "getDeclarationTNode"
   },
   {
     "name": "getFirstLContainer"
@@ -205,9 +211,6 @@
   },
   {
     "name": "getTView"
-  },
-  {
-    "name": "growHostVarsSpace"
   },
   {
     "name": "hasTagAndTypeMatch"
@@ -244,6 +247,9 @@
   },
   {
     "name": "isCurrentTNodeParent"
+  },
+  {
+    "name": "isInCheckNoChangesMode"
   },
   {
     "name": "isInlineTemplate"
@@ -298,6 +304,9 @@
   },
   {
     "name": "refreshView"
+  },
+  {
+    "name": "registerHostBindingOpCodes"
   },
   {
     "name": "rememberChangeHistoryAndInvokeOnChangesHook"

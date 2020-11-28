@@ -78,7 +78,7 @@ export function findNamespaceOfIdentifier(id: ts.Identifier): ts.Identifier|null
 export function findRequireCallReference(id: ts.Identifier, checker: ts.TypeChecker): RequireCall|
     null {
   const symbol = checker.getSymbolAtLocation(id) || null;
-  const declaration = symbol && symbol.valueDeclaration;
+  const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
   const initializer =
       declaration && ts.isVariableDeclaration(declaration) && declaration.initializer || null;
   return initializer && isRequireCall(initializer) ? initializer : null;
@@ -263,4 +263,21 @@ export interface ExportsStatement extends ts.ExpressionStatement {
  */
 export function isExportsStatement(stmt: ts.Node): stmt is ExportsStatement {
   return ts.isExpressionStatement(stmt) && isExportsAssignment(stmt.expression);
+}
+
+/**
+ * Find the far right hand side of a sequence of aliased assignements of the form
+ *
+ * ```
+ * exports.MyClass = alias1 = alias2 = <<declaration>>
+ * ```
+ *
+ * @param node the expression to parse
+ * @returns the original `node` or the far right expression of a series of assignments.
+ */
+export function skipAliases(node: ts.Expression): ts.Expression {
+  while (isAssignment(node)) {
+    node = node.right;
+  }
+  return node;
 }

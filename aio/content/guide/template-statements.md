@@ -14,7 +14,7 @@ In the following example, the template statement `deleteHero()` appears in quote
 
 <code-example path="template-syntax/src/app/app.component.html" region="context-component-statement" header="src/app/app.component.html"></code-example>
 
-When the user clicks the **Delete hero** button, Angular calls the `deleteHero()` function in the component class.
+When the user clicks the **Delete hero** button, Angular calls the `deleteHero()` method in the component class.
 
 You can use template statements with elements, components, or directives in response to events.
 
@@ -37,7 +37,7 @@ The following JavaScript and template expression syntax is not allowed:
 * increment and decrement operators, `++` and `--`
 * operator assignment, such as `+=` and `-=`
 * the bitwise operators, such as `|` and `&`
-* the [pipe operator](guide/template-expression-operators#pipe)
+* the [pipe operator](guide/pipes)
 
 ## Statement context
 

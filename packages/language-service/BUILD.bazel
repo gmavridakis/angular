@@ -19,7 +19,6 @@ ts_library(
         "//packages/compiler",
         "//packages/compiler-cli",
         "//packages/core",
-        "//packages/language-service/common",
         "@npm//@types/node",
         "@npm//typescript",
     ],
@@ -46,6 +45,7 @@ pkg_npm(
     ],
     deps = [
         ":language-service",
+        "//packages/language-service/ivy",
         # min bundle is not used at the moment; omit from package to speed up build
         "//packages/language-service/bundles:language-service.js",
         "//packages/language-service/bundles:ivy.js",

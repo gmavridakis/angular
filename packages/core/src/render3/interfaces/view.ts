@@ -9,16 +9,16 @@
 import {InjectionToken} from '../../di/injection_token';
 import {Injector} from '../../di/injector';
 import {Type} from '../../interface/type';
-import {SchemaMetadata} from '../../metadata';
+import {SchemaMetadata} from '../../metadata/schema';
 import {Sanitizer} from '../../sanitization/sanitizer';
-
 import {LContainer} from './container';
 import {ComponentDef, ComponentTemplate, DirectiveDef, DirectiveDefList, HostBindingsFunction, PipeDef, PipeDefList, ViewQueriesFunction} from './definition';
-import {I18nUpdateOpCodes, TI18n} from './i18n';
-import {TConstants, TNode, TNodeTypeAsString} from './node';
+import {I18nUpdateOpCodes, TI18n, TIcu} from './i18n';
+import {TConstants, TNode} from './node';
 import {PlayerHandler} from './player';
 import {LQueries, TQueries} from './query';
-import {RComment, RElement, Renderer3, RendererFactory3} from './renderer';
+import {Renderer3, RendererFactory3} from './renderer';
+import {RComment, RElement} from './renderer_dom';
 import {TStylingKey, TStylingRange} from './styling';
 
 
@@ -47,7 +47,13 @@ export const DECLARATION_COMPONENT_VIEW = 16;
 export const DECLARATION_LCONTAINER = 17;
 export const PREORDER_HOOK_FLAGS = 18;
 export const QUERIES = 19;
-/** Size of LView's header. Necessary to adjust for it when setting slots.  */
+/**
+ * Size of LView's header. Necessary to adjust for it when setting slots.
+ *
+ * IMPORTANT: `HEADER_OFFSET` should only be referred to the in the `ɵɵ*` instructions to translate
+ * instruction index into `LView` index. All other indexes should be in the `LView` index space and
+ * there should be no need to refer to `HEADER_OFFSET` anywhere else.
+ */
 export const HEADER_OFFSET = 20;
 
 
@@ -421,11 +427,69 @@ export const enum PreOrderHookFlags {
 }
 
 /**
- * Set of instructions used to process host bindings efficiently.
+ * Stores a set of OpCodes to process `HostBindingsFunction` associated with a current view.
  *
- * See VIEW_DATA.md for more information.
+ * In order to invoke `HostBindingsFunction` we need:
+ * 1. 'elementIdx`: Index to the element associated with the `HostBindingsFunction`.
+ * 2. 'directiveIdx`: Index to the directive associated with the `HostBindingsFunction`. (This will
+ *    become the context for the `HostBindingsFunction` invocation.)
+ * 3. `bindingRootIdx`: Location where the bindings for the `HostBindingsFunction` start. Internally
+ *    `HostBindingsFunction` binding indexes start from `0` so we need to add `bindingRootIdx` to
+ *    it.
+ * 4. `HostBindingsFunction`: A host binding function to execute.
+ *
+ * The above information needs to be encoded into the `HostBindingOpCodes` in an efficient manner.
+ *
+ * 1. `elementIdx` is encoded into the `HostBindingOpCodes` as `~elementIdx` (so a negative number);
+ * 2. `directiveIdx`
+ * 3. `bindingRootIdx`
+ * 4. `HostBindingsFunction` is passed in as is.
+ *
+ * The `HostBindingOpCodes` array contains:
+ * - negative number to select the element index.
+ * - followed by 1 or more of:
+ *    - a number to select the directive index
+ *    - a number to select the bindingRoot index
+ *    - and a function to invoke.
+ *
+ * ## Example
+ *
+ * ```
+ * const hostBindingOpCodes = [
+ *   ~30,                               // Select element 30
+ *   40, 45, MyDir.ɵdir.hostBindings    // Invoke host bindings on MyDir on element 30;
+ *                                      // directiveIdx = 40; bindingRootIdx = 45;
+ *   50, 55, OtherDir.ɵdir.hostBindings // Invoke host bindings on OtherDire on element 30
+ *                                      // directiveIdx = 50; bindingRootIdx = 55;
+ * ]
+ * ```
+ *
+ * ## Pseudocode
+ * ```
+ * const hostBindingOpCodes = tView.hostBindingOpCodes;
+ * if (hostBindingOpCodes === null) return;
+ * for (let i = 0; i < hostBindingOpCodes.length; i++) {
+ *   const opCode = hostBindingOpCodes[i] as number;
+ *   if (opCode < 0) {
+ *     // Negative numbers are element indexes.
+ *     setSelectedIndex(~opCode);
+ *   } else {
+ *     // Positive numbers are NumberTuple which store bindingRootIndex and directiveIndex.
+ *     const directiveIdx = opCode;
+ *     const bindingRootIndx = hostBindingOpCodes[++i] as number;
+ *     const hostBindingFn = hostBindingOpCodes[++i] as HostBindingsFunction<any>;
+ *     setBindingRootForHostBindings(bindingRootIndx, directiveIdx);
+ *     const context = lView[directiveIdx];
+ *     hostBindingFn(RenderFlags.Update, context);
+ *   }
+ * }
+ * ```
+ *
  */
-export interface ExpandoInstructions extends Array<number|HostBindingsFunction<any>|null> {}
+export interface HostBindingOpCodes extends Array<number|HostBindingsFunction<any>> {
+  __brand__: 'HostBindingOpCodes';
+  debug?: string[];
+}
 
 /**
  * Explicitly marks `TView` as a specific type in `ngDevMode`
@@ -566,13 +630,11 @@ export interface TView {
   firstChild: TNode|null;
 
   /**
-   * Set of instructions used to process host bindings efficiently.
+   * Stores the OpCodes to be replayed during change-detection to process the `HostBindings`
    *
-   * See VIEW_DATA.md for more information.
+   * See `HostBindingOpCodes` for encoding details.
    */
-  // TODO(misko): `expandoInstructions` should be renamed to `hostBindingsInstructions` since they
-  // keep track of `hostBindings` which need to be executed.
-  expandoInstructions: ExpandoInstructions|null;
+  hostBindingOpCodes: HostBindingOpCodes|null;
 
   /**
    * Full registry of directives and components that may be found in this view.
@@ -597,16 +659,19 @@ export interface TView {
    * Array of ngOnInit, ngOnChanges and ngDoCheck hooks that should be executed for this view in
    * creation mode.
    *
-   * Even indices: Directive index
-   * Odd indices: Hook function
+   * This array has a flat structure and contains TNode indices, directive indices (where an
+   * instance can be found in `LView`) and hook functions. TNode index is followed by the directive
+   * index and a hook function. If there are multiple hooks for a given TNode, the TNode index is
+   * not repeated and the next lifecycle hook information is stored right after the previous hook
+   * function. This is done so that at runtime the system can efficiently iterate over all of the
+   * functions to invoke without having to make any decisions/lookups.
    */
   preOrderHooks: HookData|null;
 
   /**
    * Array of ngOnChanges and ngDoCheck hooks that should be executed for this view in update mode.
    *
-   * Even indices: Directive index
-   * Odd indices: Hook function
+   * This array has the same structure as the `preOrderHooks` one.
    */
   preOrderCheckHooks: HookData|null;
 
@@ -697,8 +762,7 @@ export interface TView {
 
   /**
    * An array of indices pointing to directives with content queries alongside with the
-   * corresponding
-   * query index. Each entry in this array is a tuple of:
+   * corresponding query index. Each entry in this array is a tuple of:
    * - index of the first content query index declared by a given directive;
    * - index of a directive.
    *
@@ -839,7 +903,7 @@ export type DestroyHookData = (HookEntry|HookData)[];
  */
 export type TData =
     (TNode|PipeDef<any>|DirectiveDef<any>|ComponentDef<any>|number|TStylingRange|TStylingKey|
-     Type<any>|InjectionToken<any>|TI18n|I18nUpdateOpCodes|null|string)[];
+     Type<any>|InjectionToken<any>|TI18n|I18nUpdateOpCodes|TIcu|null|string)[];
 
 // Note: This hack is necessary so we don't erroneously get a circular dependency
 // failure based on types.
@@ -873,6 +937,11 @@ export interface LViewDebug {
   };
 
   /**
+   * Associated TView
+   */
+  readonly tView: TView;
+
+  /**
    * Parent view (or container)
    */
   readonly parent: LViewDebug|LContainerDebug|null;
@@ -893,6 +962,12 @@ export interface LViewDebug {
    * Hierarchical tree of nodes.
    */
   readonly nodes: DebugNode[];
+
+  /**
+   * Template structure (no instance data).
+   * (Shows how TNodes are connected)
+   */
+  readonly template: string;
 
   /**
    * HTML representation of the `LView`.
@@ -920,11 +995,6 @@ export interface LViewDebug {
    * Sub range of `LView` containing vars (bindings).
    */
   readonly vars: LViewDebugRange;
-
-  /**
-   * Sub range of `LView` containing i18n (translated DOM elements).
-   */
-  readonly i18n: LViewDebugRange;
 
   /**
    * Sub range of `LView` containing expando (used by DI).
@@ -1019,7 +1089,7 @@ export interface DebugNode {
   /**
    * Human readable node type.
    */
-  type: typeof TNodeTypeAsString[number];
+  type: string;
 
   /**
    * DOM native node.

@@ -301,7 +301,7 @@ export abstract class ReleaseAction {
     return new Promise((resolve, reject) => {
       debug(`Waiting for pull request #${id} to be merged.`);
 
-      const spinner = ora().start(`Waiting for pull request #${id} to be merged.`);
+      const spinner = ora.call(undefined).start(`Waiting for pull request #${id} to be merged.`);
       const intervalId = setInterval(async () => {
         const prState = await getPullRequestState(this.git, id);
         if (prState === 'merged') {
@@ -350,7 +350,7 @@ export abstract class ReleaseAction {
 
   /** Checks out an upstream branch with a detached head. */
   protected async checkoutUpstreamBranch(branchName: string) {
-    this.git.run(['fetch', this.git.repoGitUrl, branchName]);
+    this.git.run(['fetch', '-q', this.git.repoGitUrl, branchName]);
     this.git.run(['checkout', 'FETCH_HEAD', '--detach']);
   }
 
@@ -503,6 +503,9 @@ export abstract class ReleaseAction {
     await invokeYarnInstallCommand(this.projectDir);
     const builtPackages = await invokeReleaseBuildCommand();
 
+    // Verify the packages built are the correct version.
+    await this._verifyPackageVersions(newVersion, builtPackages);
+
     // Create a Github release for the new version.
     await this._createGithubReleaseForVersion(newVersion, versionBumpCommitSha);
 
@@ -517,7 +520,7 @@ export abstract class ReleaseAction {
   /** Publishes the given built package to NPM with the specified NPM dist tag. */
   private async _publishBuiltPackageToNpm(pkg: BuiltPackage, npmDistTag: string) {
     debug(`Starting publish of "${pkg.name}".`);
-    const spinner = ora().start(`Publishing "${pkg.name}"`);
+    const spinner = ora.call(undefined).start(`Publishing "${pkg.name}"`);
 
     try {
       await runNpmPublish(pkg.outputPath, npmDistTag, this.config.publishRegistry);
@@ -536,5 +539,19 @@ export abstract class ReleaseAction {
     const {data} =
         await this.git.github.repos.getCommit({...this.git.remoteParams, ref: commitSha});
     return data.commit.message.startsWith(getCommitMessageForRelease(version));
+  }
+
+  /** Verify the version of each generated package exact matches the specified version. */
+  private async _verifyPackageVersions(version: semver.SemVer, packages: BuiltPackage[]) {
+    for (const pkg of packages) {
+      const {version: packageJsonVersion} =
+          JSON.parse(await fs.readFile(join(pkg.outputPath, 'package.json'), 'utf8'));
+      if (version.compare(packageJsonVersion) !== 0) {
+        error(red('The built package version does not match the version being released.'));
+        error(`  Release Version:   ${version.version}`);
+        error(`  Generated Version: ${packageJsonVersion}`);
+        throw new FatalReleaseActionError();
+      }
+    }
   }
 }

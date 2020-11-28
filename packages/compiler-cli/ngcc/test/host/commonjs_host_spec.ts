@@ -11,8 +11,7 @@ import {absoluteFrom, getFileSystem, getSourceFileOrError} from '../../../src/ng
 import {runInEachFileSystem, TestFile} from '../../../src/ngtsc/file_system/testing';
 import {MockLogger} from '../../../src/ngtsc/logging/testing';
 import {ClassMemberKind, ConcreteDeclaration, CtorParameter, DeclarationKind, DownleveledEnum, InlineDeclaration, isNamedClassDeclaration, isNamedFunctionDeclaration, isNamedVariableDeclaration, KnownDeclaration, TypeScriptReflectionHost, TypeValueReferenceKind} from '../../../src/ngtsc/reflection';
-import {getDeclaration} from '../../../src/ngtsc/testing';
-import {loadFakeCore, loadTestFiles} from '../../../test/helpers';
+import {getDeclaration, loadFakeCore, loadTestFiles} from '../../../src/ngtsc/testing';
 import {CommonJsReflectionHost} from '../../src/host/commonjs_host';
 import {DelegatingReflectionHost} from '../../src/host/delegating_host';
 import {getIifeBody} from '../../src/host/esm2015_host';
@@ -208,6 +207,7 @@ foo.decorators = [
   { type: core.Directive, args: [{ selector: '[ignored]' },] }
 ];
 exports.directives = [foo];
+exports.Inline = (function() { function Inline() {} return Inline; })();
 `,
       };
 
@@ -2422,10 +2422,16 @@ exports.MissingClass2 = MissingClass2;
           const file = getSourceFileOrError(bundle.program, _('/inline_export.js'));
           const exportDeclarations = host.getExportsOfModule(file);
           expect(exportDeclarations).not.toBeNull();
-          const decl = exportDeclarations!.get('directives')!;
-          expect(decl).toBeDefined();
-          expect(decl.node).toBeDefined();
-          expect(decl.kind).toEqual(DeclarationKind.Inline);
+          const entries: [string, InlineDeclaration][] =
+              Array.from(exportDeclarations!.entries()) as any;
+          expect(
+              entries.map(
+                  ([name, decl]) =>
+                      [name, decl.node!.getText(), decl.implementation!.getText(), decl.viaModule]))
+              .toEqual([
+                ['directives', 'exports.directives', '[foo]', null],
+                ['Inline', 'exports.Inline', 'function Inline() {}', null],
+              ]);
         });
 
         it('should recognize declarations of known TypeScript helpers', () => {

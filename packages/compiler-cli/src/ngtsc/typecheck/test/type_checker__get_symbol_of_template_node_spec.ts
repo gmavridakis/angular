@@ -39,6 +39,33 @@ runInEachFileSystem(() => {
       assertElementSymbol(symbol.host);
     });
 
+    it('should invalidate symbols when template overrides change', () => {
+      const fileName = absoluteFrom('/main.ts');
+      const templateString = `<div id="helloWorld"></div>`;
+      const {templateTypeChecker, program} = setup(
+          [
+            {
+              fileName,
+              templates: {'Cmp': templateString},
+              source: `export class Cmp {}`,
+            },
+          ],
+      );
+      const sf = getSourceFileOrError(program, fileName);
+      const cmp = getClass(sf, 'Cmp');
+      const {attributes: beforeAttributes} = getAstElements(templateTypeChecker, cmp)[0];
+      const beforeSymbol = templateTypeChecker.getSymbolOfNode(beforeAttributes[0], cmp)!;
+
+      // Replace the <div> with a <span>.
+      templateTypeChecker.overrideComponentTemplate(cmp, '<span id="helloWorld"></span>');
+
+      const {attributes: afterAttributes} = getAstElements(templateTypeChecker, cmp)[0];
+      const afterSymbol = templateTypeChecker.getSymbolOfNode(afterAttributes[0], cmp)!;
+
+      // After the override, the symbol cache should have been invalidated.
+      expect(beforeSymbol).not.toBe(afterSymbol);
+    });
+
     it('should get a symbol for text attributes corresponding with a directive input', () => {
       const fileName = absoluteFrom('/main.ts');
       const dirFile = absoluteFrom('/dir.ts');
@@ -72,6 +99,11 @@ runInEachFileSystem(() => {
       expect(
           (symbol.bindings[0].tsSymbol!.declarations[0] as ts.PropertyDeclaration).name.getText())
           .toEqual('name');
+
+      // Ensure we can go back to the original location using the shim location
+      const mapping =
+          templateTypeChecker.getTemplateMappingAtShimLocation(symbol.bindings[0].shimLocation)!;
+      expect(mapping.span.toString()).toEqual('name');
     });
 
     describe('templates', () => {
@@ -128,6 +160,14 @@ runInEachFileSystem(() => {
           assertVariableSymbol(symbol);
           expect(program.getTypeChecker().typeToString(symbol.tsType!)).toEqual('any');
           expect(symbol.declaration.name).toEqual('contextFoo');
+
+          // Ensure we can map the shim locations back to the template
+          const initializerMapping =
+              templateTypeChecker.getTemplateMappingAtShimLocation(symbol.initializerLocation)!;
+          expect(initializerMapping.span.toString()).toEqual('bar');
+          const localVarMapping =
+              templateTypeChecker.getTemplateMappingAtShimLocation(symbol.localVarLocation)!;
+          expect(localVarMapping.span.toString()).toEqual('contextFoo');
         });
 
         it('should get a symbol for local ref which refers to a directive', () => {
@@ -143,6 +183,11 @@ runInEachFileSystem(() => {
           assertReferenceSymbol(symbol);
           expect(program.getTypeChecker().symbolToString(symbol.tsSymbol)).toEqual('TestDir');
           assertDirectiveReference(symbol);
+
+          // Ensure we can map the var shim location back to the template
+          const localVarMapping =
+              templateTypeChecker.getTemplateMappingAtShimLocation(symbol.referenceVarLocation);
+          expect(localVarMapping!.span.toString()).toEqual('ref1');
         });
 
         function assertDirectiveReference(symbol: ReferenceSymbol) {

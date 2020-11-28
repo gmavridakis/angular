@@ -432,9 +432,6 @@
     "name": "NG_PROV_DEF"
   },
   {
-    "name": "NG_PROV_DEF_FALLBACK"
-  },
-  {
     "name": "NONE"
   },
   {
@@ -576,6 +573,12 @@
     "name": "R3Injector"
   },
   {
+    "name": "R3TemplateRef"
+  },
+  {
+    "name": "R3ViewContainerRef"
+  },
+  {
     "name": "ROUTER_CONFIGURATION"
   },
   {
@@ -673,6 +676,9 @@
   },
   {
     "name": "RoutesRecognized"
+  },
+  {
+    "name": "RuntimeError"
   },
   {
     "name": "SAFE_URL_PATTERN"
@@ -840,6 +846,9 @@
     "name": "VERSION"
   },
   {
+    "name": "VE_ViewContainerRef"
+  },
+  {
     "name": "Version"
   },
   {
@@ -847,6 +856,9 @@
   },
   {
     "name": "ViewEncapsulation"
+  },
+  {
+    "name": "ViewEngineTemplateRef"
   },
   {
     "name": "ViewRef"
@@ -924,9 +936,6 @@
     "name": "addComponentLogic"
   },
   {
-    "name": "addHostBindingsToExpandoInstructions"
-  },
-  {
     "name": "addToArray"
   },
   {
@@ -937,6 +946,9 @@
   },
   {
     "name": "advanceActivatedRouteNodeAndItsChildren"
+  },
+  {
+    "name": "allocExpando"
   },
   {
     "name": "allocLFrame"
@@ -967,9 +979,6 @@
   },
   {
     "name": "baseElement"
-  },
-  {
-    "name": "baseResolveDirective"
   },
   {
     "name": "bindingUpdated"
@@ -1020,6 +1029,9 @@
     "name": "config"
   },
   {
+    "name": "configureViewWithDirective"
+  },
+  {
     "name": "connectableObservableDescriptor"
   },
   {
@@ -1033,6 +1045,9 @@
   },
   {
     "name": "createContainerRef"
+  },
+  {
+    "name": "createElementNode"
   },
   {
     "name": "createElementRef"
@@ -1057,6 +1072,9 @@
   },
   {
     "name": "createNewSegmentGroup"
+  },
+  {
+    "name": "createNodeInjector"
   },
   {
     "name": "createPlatformFactory"
@@ -1141,9 +1159,6 @@
   },
   {
     "name": "domRendererFactory3"
-  },
-  {
-    "name": "elementCreate"
   },
   {
     "name": "empty"
@@ -1245,9 +1260,6 @@
     "name": "fromArray"
   },
   {
-    "name": "generateExpandoInstructionBlock"
-  },
-  {
     "name": "generateInitialInputs"
   },
   {
@@ -1261,9 +1273,6 @@
   },
   {
     "name": "getBootstrapListener"
-  },
-  {
-    "name": "getCheckNoChangesMode"
   },
   {
     "name": "getClosureSafeProperty"
@@ -1284,6 +1293,9 @@
     "name": "getCurrentTNode"
   },
   {
+    "name": "getCurrentTNodePlaceholderOk"
+  },
+  {
     "name": "getDOM"
   },
   {
@@ -1291,6 +1303,9 @@
   },
   {
     "name": "getDebugContext"
+  },
+  {
+    "name": "getDeclarationTNode"
   },
   {
     "name": "getFactoryDef"
@@ -1356,10 +1371,10 @@
     "name": "getOrCreateTNode"
   },
   {
-    "name": "getOriginalError"
+    "name": "getOrCreateViewRefs"
   },
   {
-    "name": "getOutlet"
+    "name": "getOriginalError"
   },
   {
     "name": "getOutlet"
@@ -1375,9 +1390,6 @@
   },
   {
     "name": "getParentInjectorView"
-  },
-  {
-    "name": "getPath"
   },
   {
     "name": "getPathIndexShift"
@@ -1428,7 +1440,7 @@
     "name": "getToken"
   },
   {
-    "name": "growHostVarsSpace"
+    "name": "getViewRefs"
   },
   {
     "name": "handleError"
@@ -1441,6 +1453,9 @@
   },
   {
     "name": "hostReportError"
+  },
+  {
+    "name": "icuContainerIterate"
   },
   {
     "name": "identity"
@@ -1491,6 +1506,9 @@
     "name": "isArrayLike"
   },
   {
+    "name": "isCommandWithOutlets"
+  },
+  {
     "name": "isComponentDef"
   },
   {
@@ -1519,6 +1537,9 @@
   },
   {
     "name": "isFunction"
+  },
+  {
+    "name": "isInCheckNoChangesMode"
   },
   {
     "name": "isInlineTemplate"
@@ -1563,9 +1584,6 @@
     "name": "isPromise"
   },
   {
-    "name": "isRootView"
-  },
-  {
     "name": "isScheduler"
   },
   {
@@ -1603,6 +1621,9 @@
   },
   {
     "name": "locateDirectiveOrProvider"
+  },
+  {
+    "name": "lookupTokenUsingModuleInjector"
   },
   {
     "name": "makeParamDecorator"
@@ -1701,6 +1722,9 @@
     "name": "normalizeQueryParams"
   },
   {
+    "name": "notFoundValueOrThrow"
+  },
+  {
     "name": "observable"
   },
   {
@@ -1753,6 +1777,9 @@
   },
   {
     "name": "refreshView"
+  },
+  {
+    "name": "registerHostBindingOpCodes"
   },
   {
     "name": "registerPostOrderHooks"
@@ -1821,9 +1848,6 @@
     "name": "setBindingRootForHostBindings"
   },
   {
-    "name": "setCheckNoChangesMode"
-  },
-  {
     "name": "setCurrentDirectiveIndex"
   },
   {
@@ -1849,6 +1873,9 @@
   },
   {
     "name": "setInputsFromAttrs"
+  },
+  {
+    "name": "setIsInCheckNoChangesMode"
   },
   {
     "name": "setLocaleId"
@@ -1927,6 +1954,9 @@
   },
   {
     "name": "throwIfEmpty"
+  },
+  {
+    "name": "throwProviderNotFoundError"
   },
   {
     "name": "toRefArray"

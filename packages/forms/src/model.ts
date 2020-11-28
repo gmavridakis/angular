@@ -8,9 +8,10 @@
 
 import {EventEmitter} from '@angular/core';
 import {Observable} from 'rxjs';
-import {composeAsyncValidators, composeValidators} from './directives/shared';
+
+import {removeListItem} from './directives/shared';
 import {AsyncValidatorFn, ValidationErrors, ValidatorFn} from './directives/validators';
-import {toObservable} from './validators';
+import {composeAsyncValidators, composeValidators, toObservable} from './validators';
 
 /**
  * Reports that a FormControl is valid, meaning that no errors exist in the input value.
@@ -1269,12 +1270,11 @@ export class FormControl extends AbstractControl {
   }
 
   /**
+   * Internal function to unregister a change events listener.
    * @internal
    */
-  _clearChangeFns(): void {
-    this._onChange = [];
-    this._onDisabledChange = [];
-    this._onCollectionChange = () => {};
+  _unregisterOnChange(fn: Function): void {
+    removeListItem(this._onChange, fn);
   }
 
   /**
@@ -1284,6 +1284,14 @@ export class FormControl extends AbstractControl {
    */
   registerOnDisabledChange(fn: (isDisabled: boolean) => void): void {
     this._onDisabledChange.push(fn);
+  }
+
+  /**
+   * Internal function to unregister a disabled event listener.
+   * @internal
+   */
+  _unregisterOnDisabledChange(fn: (isDisabled: boolean) => void): void {
+    removeListItem(this._onDisabledChange, fn);
   }
 
   /**

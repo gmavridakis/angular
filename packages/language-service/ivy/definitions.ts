@@ -6,16 +6,19 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AST, TmplAstNode, TmplAstTextAttribute} from '@angular/compiler';
+import {AST, TmplAstBoundAttribute, TmplAstBoundEvent, TmplAstElement, TmplAstNode, TmplAstTemplate, TmplAstTextAttribute} from '@angular/compiler';
 import {NgCompiler} from '@angular/compiler-cli/src/ngtsc/core';
+import {isExternalResource} from '@angular/compiler-cli/src/ngtsc/metadata';
 import {DirectiveSymbol, DomBindingSymbol, ElementSymbol, ShimLocation, Symbol, SymbolKind, TemplateSymbol} from '@angular/compiler-cli/src/ngtsc/typecheck/api';
 import * as ts from 'typescript';
 
-import {findNodeAtPosition} from './hybrid_visitor';
-import {flatMap, getDirectiveMatchesForAttribute, getDirectiveMatchesForElementTag, getTemplateInfoAtPosition, getTextSpanOfNode, isDollarEvent, TemplateInfo, toTextSpan} from './utils';
+import {getTargetAtPosition} from './template_target';
+import {findTightestNode, getParentClassDeclaration} from './ts_utils';
+import {flatMap, getDirectiveMatchesForAttribute, getDirectiveMatchesForElementTag, getTemplateInfoAtPosition, getTextSpanOfNode, isDollarEvent, isTypeScriptFile, TemplateInfo, toTextSpan} from './utils';
 
 interface DefinitionMeta {
   node: AST|TmplAstNode;
+  parent: AST|TmplAstNode|null;
   symbol: Symbol;
 }
 
@@ -30,7 +33,13 @@ export class DefinitionBuilder {
       |undefined {
     const templateInfo = getTemplateInfoAtPosition(fileName, position, this.compiler);
     if (templateInfo === undefined) {
-      return;
+      // We were unable to get a template at the given position. If we are in a TS file, instead
+      // attempt to get an Angular definition at the location inside a TS file (examples of this
+      // would be templateUrl or a url in styleUrls).
+      if (!isTypeScriptFile(fileName)) {
+        return;
+      }
+      return getDefinitionForExpressionAtPosition(fileName, position, this.compiler);
     }
     const definitionMeta = this.getDefinitionMetaAtPosition(templateInfo, position);
     // The `$event` of event handlers would point to the $event parameter in the shim file, as in
@@ -41,12 +50,12 @@ export class DefinitionBuilder {
       return undefined;
     }
 
-    const definitions = this.getDefinitionsForSymbol(definitionMeta.symbol, definitionMeta.node);
+    const definitions = this.getDefinitionsForSymbol({...definitionMeta, ...templateInfo});
     return {definitions, textSpan: getTextSpanOfNode(definitionMeta.node)};
   }
 
-  private getDefinitionsForSymbol(symbol: Symbol, node: TmplAstNode|AST):
-      readonly ts.DefinitionInfo[]|undefined {
+  private getDefinitionsForSymbol({symbol, node, parent, component}: DefinitionMeta&
+                                  TemplateInfo): readonly ts.DefinitionInfo[]|undefined {
     switch (symbol.kind) {
       case SymbolKind.Directive:
       case SymbolKind.Element:
@@ -58,9 +67,14 @@ export class DefinitionBuilder {
         // LS users to "go to definition" on an item in the template that maps to a class and be
         // taken to the directive or HTML class.
         return this.getTypeDefinitionsForTemplateInstance(symbol, node);
-      case SymbolKind.Input:
       case SymbolKind.Output:
-        return this.getDefinitionsForSymbols(...symbol.bindings);
+      case SymbolKind.Input: {
+        const bindingDefs = this.getDefinitionsForSymbols(...symbol.bindings);
+        // Also attempt to get directive matches for the input name. If there is a directive that
+        // has the input name as part of the selector, we want to return that as well.
+        const directiveDefs = this.getDirectiveTypeDefsForBindingNode(node, parent, component);
+        return [...bindingDefs, ...directiveDefs];
+      }
       case SymbolKind.Variable:
       case SymbolKind.Reference: {
         const definitions: ts.DefinitionInfo[] = [];
@@ -76,7 +90,8 @@ export class DefinitionBuilder {
           });
         }
         if (symbol.kind === SymbolKind.Variable) {
-          definitions.push(...this.getDefinitionsForSymbols(symbol));
+          definitions.push(
+              ...this.getDefinitionsForSymbols({shimLocation: symbol.initializerLocation}));
         }
         return definitions;
       }
@@ -112,12 +127,20 @@ export class DefinitionBuilder {
       case SymbolKind.Template:
         return this.getTypeDefinitionsForTemplateInstance(symbol, node);
       case SymbolKind.Output:
-      case SymbolKind.Input:
-        return this.getTypeDefinitionsForSymbols(...symbol.bindings);
+      case SymbolKind.Input: {
+        const bindingDefs = this.getTypeDefinitionsForSymbols(...symbol.bindings);
+        // Also attempt to get directive matches for the input name. If there is a directive that
+        // has the input name as part of the selector, we want to return that as well.
+        const directiveDefs = this.getDirectiveTypeDefsForBindingNode(
+            node, definitionMeta.parent, templateInfo.component);
+        return [...bindingDefs, ...directiveDefs];
+      }
       case SymbolKind.Reference:
+        return this.getTypeDefinitionsForSymbols({shimLocation: symbol.targetLocation});
       case SymbolKind.Expression:
-      case SymbolKind.Variable:
         return this.getTypeDefinitionsForSymbols(symbol);
+      case SymbolKind.Variable:
+        return this.getTypeDefinitionsForSymbols({shimLocation: symbol.initializerLocation});
     }
   }
 
@@ -150,6 +173,28 @@ export class DefinitionBuilder {
     }
   }
 
+  private getDirectiveTypeDefsForBindingNode(
+      node: TmplAstNode|AST, parent: TmplAstNode|AST|null, component: ts.ClassDeclaration) {
+    if (!(node instanceof TmplAstBoundAttribute) && !(node instanceof TmplAstTextAttribute) &&
+        !(node instanceof TmplAstBoundEvent)) {
+      return [];
+    }
+    if (parent === null ||
+        !(parent instanceof TmplAstTemplate || parent instanceof TmplAstElement)) {
+      return [];
+    }
+    const templateOrElementSymbol =
+        this.compiler.getTemplateTypeChecker().getSymbolOfNode(parent, component);
+    if (templateOrElementSymbol === null ||
+        (templateOrElementSymbol.kind !== SymbolKind.Template &&
+         templateOrElementSymbol.kind !== SymbolKind.Element)) {
+      return [];
+    }
+    const dirs =
+        getDirectiveMatchesForAttribute(node.name, parent, templateOrElementSymbol.directives);
+    return this.getTypeDefinitionsForSymbols(...dirs);
+  }
+
   private getTypeDefinitionsForSymbols(...symbols: HasShimLocation[]): ts.DefinitionInfo[] {
     return flatMap(symbols, ({shimLocation}) => {
       const {shimPath, positionInShimFile} = shimLocation;
@@ -159,15 +204,70 @@ export class DefinitionBuilder {
 
   private getDefinitionMetaAtPosition({template, component}: TemplateInfo, position: number):
       DefinitionMeta|undefined {
-    const node = findNodeAtPosition(template, position);
-    if (node === undefined) {
-      return;
+    const target = getTargetAtPosition(template, position);
+    if (target === null) {
+      return undefined;
     }
+    const {node, parent} = target;
 
     const symbol = this.compiler.getTemplateTypeChecker().getSymbolOfNode(node, component);
     if (symbol === null) {
-      return;
+      return undefined;
     }
-    return {node, symbol};
+    return {node, parent, symbol};
   }
+}
+
+/**
+ * Gets an Angular-specific definition in a TypeScript source file.
+ */
+function getDefinitionForExpressionAtPosition(
+    fileName: string, position: number, compiler: NgCompiler): ts.DefinitionInfoAndBoundSpan|
+    undefined {
+  const sf = compiler.getNextProgram().getSourceFile(fileName);
+  if (sf === undefined) {
+    return;
+  }
+
+  const expression = findTightestNode(sf, position);
+  if (expression === undefined) {
+    return;
+  }
+  const classDeclaration = getParentClassDeclaration(expression);
+  if (classDeclaration === undefined) {
+    return;
+  }
+  const componentResources = compiler.getComponentResources(classDeclaration);
+  if (componentResources === null) {
+    return;
+  }
+
+  const allResources = [...componentResources.styles, componentResources.template];
+
+  const resourceForExpression = allResources.find(resource => resource.expression === expression);
+  if (resourceForExpression === undefined || !isExternalResource(resourceForExpression)) {
+    return;
+  }
+
+  const templateDefinitions: ts.DefinitionInfo[] = [{
+    kind: ts.ScriptElementKind.externalModuleName,
+    name: resourceForExpression.path,
+    containerKind: ts.ScriptElementKind.unknown,
+    containerName: '',
+    // Reading the template is expensive, so don't provide a preview.
+    // TODO(ayazhafiz): Consider providing an actual span:
+    //  1. We're likely to read the template anyway
+    //  2. We could show just the first 100 chars or so
+    textSpan: {start: 0, length: 0},
+    fileName: resourceForExpression.path,
+  }];
+
+  return {
+    definitions: templateDefinitions,
+    textSpan: {
+      // Exclude opening and closing quotes in the url span.
+      start: expression.getStart() + 1,
+      length: expression.getWidth() - 2,
+    },
+  };
 }

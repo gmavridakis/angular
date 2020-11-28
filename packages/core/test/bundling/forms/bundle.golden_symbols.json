@@ -357,9 +357,6 @@
     "name": "NG_PROV_DEF"
   },
   {
-    "name": "NG_PROV_DEF_FALLBACK"
-  },
-  {
     "name": "NG_VALIDATORS"
   },
   {
@@ -471,6 +468,12 @@
     "name": "R3Injector"
   },
   {
+    "name": "R3TemplateRef"
+  },
+  {
+    "name": "R3ViewContainerRef"
+  },
+  {
     "name": "RADIO_VALUE_ACCESSOR"
   },
   {
@@ -523,6 +526,9 @@
   },
   {
     "name": "RootViewRef"
+  },
+  {
+    "name": "RuntimeError"
   },
   {
     "name": "SCHEDULER"
@@ -621,6 +627,9 @@
     "name": "VERSION"
   },
   {
+    "name": "VE_ViewContainerRef"
+  },
+  {
     "name": "Validators"
   },
   {
@@ -631,6 +640,9 @@
   },
   {
     "name": "ViewEncapsulation"
+  },
+  {
+    "name": "ViewEngineTemplateRef"
   },
   {
     "name": "ViewRef"
@@ -702,13 +714,13 @@
     "name": "addComponentLogic"
   },
   {
-    "name": "addHostBindingsToExpandoInstructions"
-  },
-  {
     "name": "addToArray"
   },
   {
     "name": "addToViewTree"
+  },
+  {
+    "name": "allocExpando"
   },
   {
     "name": "allocLFrame"
@@ -738,9 +750,6 @@
     "name": "baseElement"
   },
   {
-    "name": "baseResolveDirective"
-  },
-  {
     "name": "bindingUpdated"
   },
   {
@@ -757,6 +766,9 @@
   },
   {
     "name": "classIndexOf"
+  },
+  {
+    "name": "cleanUpValidators"
   },
   {
     "name": "cleanUpView"
@@ -789,6 +801,9 @@
     "name": "config"
   },
   {
+    "name": "configureViewWithDirective"
+  },
+  {
     "name": "connectableObservableDescriptor"
   },
   {
@@ -799,6 +814,9 @@
   },
   {
     "name": "createDirectivesInstances"
+  },
+  {
+    "name": "createElementNode"
   },
   {
     "name": "createElementRef"
@@ -814,6 +832,9 @@
   },
   {
     "name": "createLView"
+  },
+  {
+    "name": "createNodeInjector"
   },
   {
     "name": "createPlatformFactory"
@@ -859,9 +880,6 @@
   },
   {
     "name": "domRendererFactory3"
-  },
-  {
-    "name": "elementCreate"
   },
   {
     "name": "empty"
@@ -942,16 +960,10 @@
     "name": "fromArray"
   },
   {
-    "name": "generateExpandoInstructionBlock"
-  },
-  {
     "name": "generateInitialInputs"
   },
   {
     "name": "generatePropertyAliases"
-  },
-  {
-    "name": "getCheckNoChangesMode"
   },
   {
     "name": "getClosureSafeProperty"
@@ -966,13 +978,25 @@
     "name": "getConstant"
   },
   {
+    "name": "getControlAsyncValidators"
+  },
+  {
+    "name": "getControlValidators"
+  },
+  {
     "name": "getCurrentTNode"
+  },
+  {
+    "name": "getCurrentTNodePlaceholderOk"
   },
   {
     "name": "getDOM"
   },
   {
     "name": "getDebugContext"
+  },
+  {
+    "name": "getDeclarationTNode"
   },
   {
     "name": "getFactoryDef"
@@ -1032,6 +1056,9 @@
     "name": "getOrCreateTNode"
   },
   {
+    "name": "getOrCreateViewRefs"
+  },
+  {
     "name": "getOriginalError"
   },
   {
@@ -1083,7 +1110,7 @@
     "name": "getTView"
   },
   {
-    "name": "growHostVarsSpace"
+    "name": "getViewRefs"
   },
   {
     "name": "handleError"
@@ -1099,6 +1126,9 @@
   },
   {
     "name": "hostReportError"
+  },
+  {
+    "name": "icuContainerIterate"
   },
   {
     "name": "identity"
@@ -1185,6 +1215,9 @@
     "name": "isFunction"
   },
   {
+    "name": "isInCheckNoChangesMode"
+  },
+  {
     "name": "isInlineTemplate"
   },
   {
@@ -1230,9 +1263,6 @@
     "name": "isPropertyUpdated"
   },
   {
-    "name": "isRootView"
-  },
-  {
     "name": "isScheduler"
   },
   {
@@ -1275,6 +1305,9 @@
     "name": "localeEn"
   },
   {
+    "name": "lookupTokenUsingModuleInjector"
+  },
+  {
     "name": "makeParamDecorator"
   },
   {
@@ -1312,6 +1345,9 @@
   },
   {
     "name": "mergeHostAttrs"
+  },
+  {
+    "name": "mergeValidators"
   },
   {
     "name": "modelGroupProvider"
@@ -1365,6 +1401,9 @@
     "name": "normalizeValidators"
   },
   {
+    "name": "notFoundValueOrThrow"
+  },
+  {
     "name": "observable"
   },
   {
@@ -1416,6 +1455,12 @@
     "name": "registerDestroyHooksIfSupported"
   },
   {
+    "name": "registerHostBindingOpCodes"
+  },
+  {
+    "name": "registerOnValidatorChange"
+  },
+  {
     "name": "registerPostOrderHooks"
   },
   {
@@ -1425,10 +1470,10 @@
     "name": "remove"
   },
   {
-    "name": "removeDir"
+    "name": "removeFromArray"
   },
   {
-    "name": "removeFromArray"
+    "name": "removeListItem"
   },
   {
     "name": "renderComponent"
@@ -1488,9 +1533,6 @@
     "name": "setBindingRootForHostBindings"
   },
   {
-    "name": "setCheckNoChangesMode"
-  },
-  {
     "name": "setCurrentDirectiveIndex"
   },
   {
@@ -1518,6 +1560,9 @@
     "name": "setInputsFromAttrs"
   },
   {
+    "name": "setIsInCheckNoChangesMode"
+  },
+  {
     "name": "setLocaleId"
   },
   {
@@ -1542,6 +1587,9 @@
     "name": "setUpFormContainer"
   },
   {
+    "name": "setUpValidators"
+  },
+  {
     "name": "shareSubjectFactory"
   },
   {
@@ -1564,6 +1612,9 @@
   },
   {
     "name": "syncPendingControls"
+  },
+  {
+    "name": "throwProviderNotFoundError"
   },
   {
     "name": "toObservable"

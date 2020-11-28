@@ -12,8 +12,7 @@ import {absoluteFrom, getFileSystem, getSourceFileOrError} from '../../../src/ng
 import {runInEachFileSystem, TestFile} from '../../../src/ngtsc/file_system/testing';
 import {MockLogger} from '../../../src/ngtsc/logging/testing';
 import {ClassMemberKind, ConcreteDeclaration, CtorParameter, DeclarationKind, DownleveledEnum, Import, InlineDeclaration, isNamedClassDeclaration, isNamedFunctionDeclaration, isNamedVariableDeclaration, KnownDeclaration, TypeScriptReflectionHost, TypeValueReferenceKind} from '../../../src/ngtsc/reflection';
-import {getDeclaration} from '../../../src/ngtsc/testing';
-import {loadFakeCore, loadTestFiles} from '../../../test/helpers';
+import {getDeclaration, loadFakeCore, loadTestFiles} from '../../../src/ngtsc/testing';
 import {isExportsDeclaration, isExportsStatement} from '../../src/host/commonjs_umd_utils';
 import {DelegatingReflectionHost} from '../../src/host/delegating_host';
 import {NgccReflectionHost} from '../../src/host/ngcc_host';
@@ -287,6 +286,7 @@ runInEachFileSystem(() => {
     { type: core.Directive, args: [{ selector: '[ignored]' },] }
   ];
   exports.directives = [foo];
+  exports.Inline = (function() { function Inline() {} return Inline; })();
 })));
 `,
         };
@@ -2732,10 +2732,8 @@ runInEachFileSystem(() => {
                 ['e', `e = 'e'`, null],
                 ['DirectiveX', `Directive: FnWithArg<(clazz: any) => any>`, '@angular/core'],
                 [
-                  'SomeClass', `SomeClass = (function() {
-    function SomeClass() {}
-    return SomeClass;
-  }())`,
+                  'SomeClass',
+                  'SomeClass = (function() {\n    function SomeClass() {}\n    return SomeClass;\n  }())',
                   null
                 ],
               ]);
@@ -2750,13 +2748,13 @@ runInEachFileSystem(() => {
           const exportDeclarations = host.getExportsOfModule(file);
           expect(exportDeclarations).not.toBe(null);
           expect(exportDeclarations!.size).toEqual(1);
-          const classDecl = exportDeclarations!.get('DecoratedClass')!;
+          const classDecl = exportDeclarations!.get('DecoratedClass') as InlineDeclaration;
           expect(classDecl).toBeDefined();
           expect(classDecl.kind).toEqual(DeclarationKind.Inline);
           expect(classDecl.known).toBe(null);
           expect(classDecl.viaModule).toBe(null);
           expect(classDecl.node.getText()).toEqual('exports.DecoratedClass');
-          expect(classDecl.node.parent.parent.getText()).toContain('function DecoratedClass() {');
+          expect(classDecl.implementation!.getText()).toContain('function DecoratedClass() {');
         });
 
         it('should handle wildcard re-exports of other modules (with emitted helpers)', () => {
@@ -2824,10 +2822,16 @@ runInEachFileSystem(() => {
           const file = getSourceFileOrError(bundle.program, INLINE_EXPORT_FILE.name);
           const exportDeclarations = host.getExportsOfModule(file);
           expect(exportDeclarations).not.toBe(null);
-          const decl = exportDeclarations!.get('directives')!;
-          expect(decl).toBeDefined();
-          expect(decl.node).toBeDefined();
-          expect(decl.kind).toEqual(DeclarationKind.Inline);
+          const entries: [string, InlineDeclaration][] =
+              Array.from(exportDeclarations!.entries()) as any;
+          expect(
+              entries.map(
+                  ([name, decl]) =>
+                      [name, decl.node!.getText(), decl.implementation!.getText(), decl.viaModule]))
+              .toEqual([
+                ['directives', 'exports.directives', '[foo]', null],
+                ['Inline', 'exports.Inline', 'function Inline() {}', null],
+              ]);
         });
 
         it('should recognize declarations of known TypeScript helpers', () => {

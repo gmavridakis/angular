@@ -156,7 +156,7 @@ export declare class GuardsCheckStart extends RouterEvent {
     toString(): string;
 }
 
-export declare type InitialNavigation = true | false | 'enabled' | 'disabled' | 'legacy_enabled' | 'legacy_disabled';
+export declare type InitialNavigation = 'disabled' | 'enabled' | 'enabledBlocking' | 'enabledNonBlocking';
 
 export declare type LoadChildren = LoadChildrenCallback | DeprecatedLoadChildren;
 
@@ -378,7 +378,6 @@ export declare class RouterEvent {
 export declare class RouterLink implements OnChanges {
     fragment?: string;
     preserveFragment: boolean;
-    /** @deprecated */ set preserveQueryParams(value: boolean);
     queryParams?: Params | null;
     queryParamsHandling?: QueryParamsHandling | null;
     replaceUrl: boolean;
@@ -411,7 +410,6 @@ export declare class RouterLinkWithHref implements OnChanges, OnDestroy {
     fragment?: string;
     href: string;
     preserveFragment: boolean;
-    /** @deprecated */ set preserveQueryParams(value: boolean);
     queryParams?: Params | null;
     queryParamsHandling?: QueryParamsHandling | null;
     replaceUrl: boolean;
@@ -498,7 +496,6 @@ export declare class Scroll {
 export declare interface UrlCreationOptions {
     fragment?: string;
     preserveFragment?: boolean;
-    /** @deprecated */ preserveQueryParams?: boolean;
     queryParams?: Params | null;
     queryParamsHandling?: QueryParamsHandling | null;
     relativeTo?: ActivatedRoute | null;

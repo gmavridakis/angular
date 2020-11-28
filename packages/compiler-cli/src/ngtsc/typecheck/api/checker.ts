@@ -9,8 +9,10 @@
 import {AST, ParseError, TmplAstNode, TmplAstTemplate} from '@angular/compiler';
 import * as ts from 'typescript';
 
+import {FullTemplateMapping} from './api';
 import {GlobalCompletion} from './completion';
-import {Symbol} from './symbols';
+import {DirectiveInScope, PipeInScope} from './scope';
+import {ShimLocation, Symbol} from './symbols';
 
 /**
  * Interface to the Angular Template Type Checker to extract diagnostics and intelligence from the
@@ -66,6 +68,12 @@ export interface TemplateTypeChecker {
   getDiagnosticsForFile(sf: ts.SourceFile, optimizeFor: OptimizeFor): ts.Diagnostic[];
 
   /**
+   * Given a `shim` and position within the file, returns information for mapping back to a template
+   * location.
+   */
+  getTemplateMappingAtShimLocation(shimLocation: ShimLocation): FullTemplateMapping|null;
+
+  /**
    * Get all `ts.Diagnostic`s currently available that pertain to the given component.
    *
    * This method always runs in `OptimizeFor.SingleFile` mode.
@@ -100,7 +108,17 @@ export interface TemplateTypeChecker {
    * template variables which are in scope for that expression.
    */
   getGlobalCompletions(context: TmplAstTemplate|null, component: ts.ClassDeclaration):
-      GlobalCompletion[];
+      GlobalCompletion|null;
+
+  /**
+   * Get basic metadata on the directives which are in scope for the given component.
+   */
+  getDirectivesInScope(component: ts.ClassDeclaration): DirectiveInScope[]|null;
+
+  /**
+   * Get basic metadata on the pipes which are in scope for the given component.
+   */
+  getPipesInScope(component: ts.ClassDeclaration): PipeInScope[]|null;
 }
 
 /**

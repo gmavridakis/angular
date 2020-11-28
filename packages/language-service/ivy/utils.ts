@@ -7,13 +7,16 @@
  */
 import {AbsoluteSourceSpan, CssSelector, ParseSourceSpan, SelectorMatcher} from '@angular/compiler';
 import {NgCompiler} from '@angular/compiler-cli/src/ngtsc/core';
+import {isExternalResource} from '@angular/compiler-cli/src/ngtsc/metadata';
 import {DeclarationNode} from '@angular/compiler-cli/src/ngtsc/reflection';
 import {DirectiveSymbol} from '@angular/compiler-cli/src/ngtsc/typecheck/api';
+import {Diagnostic as ngDiagnostic, isNgDiagnostic} from '@angular/compiler-cli/src/transformers/api';
 import * as e from '@angular/compiler/src/expression_parser/ast';  // e for expression AST
 import * as t from '@angular/compiler/src/render3/r3_ast';         // t for template AST
 import * as ts from 'typescript';
 
-import {ALIAS_NAME, SYMBOL_PUNC} from '../common/quick_info';
+import {ALIAS_NAME, SYMBOL_PUNC} from './display_parts';
+import {findTightestNode, getParentClassDeclaration} from './ts_utils';
 
 export function getTextSpanOfNode(node: t.Node|e.AST): ts.TextSpan {
   if (isTemplateNodeWithKeyAndValue(node)) {
@@ -65,18 +68,49 @@ export interface TemplateInfo {
   component: ts.ClassDeclaration;
 }
 
+function getInlineTemplateInfoAtPosition(
+    sf: ts.SourceFile, position: number, compiler: NgCompiler): TemplateInfo|undefined {
+  const expression = findTightestNode(sf, position);
+  if (expression === undefined) {
+    return undefined;
+  }
+  const classDecl = getParentClassDeclaration(expression);
+  if (classDecl === undefined) {
+    return undefined;
+  }
+
+  // Return `undefined` if the position is not on the template expression or the template resource
+  // is not inline.
+  const resources = compiler.getComponentResources(classDecl);
+  if (resources === null || isExternalResource(resources.template) ||
+      expression !== resources.template.expression) {
+    return undefined;
+  }
+
+  const template = compiler.getTemplateTypeChecker().getTemplate(classDecl);
+  if (template === null) {
+    return undefined;
+  }
+
+  return {template, component: classDecl};
+}
+
 /**
  * Retrieves the `ts.ClassDeclaration` at a location along with its template nodes.
  */
 export function getTemplateInfoAtPosition(
     fileName: string, position: number, compiler: NgCompiler): TemplateInfo|undefined {
-  if (fileName.endsWith('.ts')) {
-    return getInlineTemplateInfoAtPosition(fileName, position, compiler);
+  if (isTypeScriptFile(fileName)) {
+    const sf = compiler.getNextProgram().getSourceFile(fileName);
+    if (sf === undefined) {
+      return undefined;
+    }
+
+    return getInlineTemplateInfoAtPosition(sf, position, compiler);
   } else {
     return getFirstComponentForTemplateFile(fileName, compiler);
   }
 }
-
 
 /**
  * First, attempt to sort component declarations by file name.
@@ -114,37 +148,14 @@ function getFirstComponentForTemplateFile(fileName: string, compiler: NgCompiler
 }
 
 /**
- * Retrieves the `ts.ClassDeclaration` at a location along with its template nodes.
- */
-function getInlineTemplateInfoAtPosition(
-    fileName: string, position: number, compiler: NgCompiler): TemplateInfo|undefined {
-  const sourceFile = compiler.getNextProgram().getSourceFile(fileName);
-  if (!sourceFile) {
-    return undefined;
-  }
-
-  // We only support top level statements / class declarations
-  for (const statement of sourceFile.statements) {
-    if (!ts.isClassDeclaration(statement) || position < statement.pos || position > statement.end) {
-      continue;
-    }
-
-    const template = compiler.getTemplateTypeChecker().getTemplate(statement);
-    if (template === null) {
-      return undefined;
-    }
-
-    return {template, component: statement};
-  }
-
-  return undefined;
-}
-
-/**
  * Given an attribute node, converts it to string form.
  */
-function toAttributeString(attribute: t.TextAttribute|t.BoundAttribute): string {
-  return `[${attribute.name}=${attribute.valueSpan?.toString() ?? ''}]`;
+function toAttributeString(attribute: t.TextAttribute|t.BoundAttribute|t.BoundEvent): string {
+  if (attribute instanceof t.BoundEvent) {
+    return `[${attribute.name}]`;
+  } else {
+    return `[${attribute.name}=${attribute.valueSpan?.toString() ?? ''}]`;
+  }
 }
 
 function getNodeName(node: t.Template|t.Element): string {
@@ -154,8 +165,10 @@ function getNodeName(node: t.Template|t.Element): string {
 /**
  * Given a template or element node, returns all attributes on the node.
  */
-function getAttributes(node: t.Template|t.Element): Array<t.TextAttribute|t.BoundAttribute> {
-  const attributes: Array<t.TextAttribute|t.BoundAttribute> = [...node.attributes, ...node.inputs];
+function getAttributes(node: t.Template|
+                       t.Element): Array<t.TextAttribute|t.BoundAttribute|t.BoundEvent> {
+  const attributes: Array<t.TextAttribute|t.BoundAttribute|t.BoundEvent> =
+      [...node.attributes, ...node.inputs, ...node.outputs];
   if (node instanceof t.Template) {
     attributes.push(...node.templateAttrs);
   }
@@ -216,8 +229,8 @@ export function getDirectiveMatchesForAttribute(
   const allDirectiveMatches =
       getDirectiveMatchesForSelector(directives, getNodeName(hostNode) + allAttrs.join(''));
   const attrsExcludingName = attributes.filter(a => a.name !== name).map(toAttributeString);
-  const matchesWithoutAttr =
-      getDirectiveMatchesForSelector(directives, attrsExcludingName.join(''));
+  const matchesWithoutAttr = getDirectiveMatchesForSelector(
+      directives, getNodeName(hostNode) + attrsExcludingName.join(''));
   return difference(allDirectiveMatches, matchesWithoutAttr);
 }
 
@@ -271,7 +284,7 @@ export function filterAliasImports(displayParts: ts.SymbolDisplayPart[]): ts.Sym
 
 export function isDollarEvent(n: t.Node|e.AST): n is e.PropertyRead {
   return n instanceof e.PropertyRead && n.name === '$event' &&
-      n.receiver instanceof e.ImplicitReceiver;
+      n.receiver instanceof e.ImplicitReceiver && !(n.receiver instanceof e.ThisReceiver);
 }
 
 /**
@@ -284,4 +297,12 @@ export function flatMap<T, R>(items: T[]|readonly T[], f: (item: T) => R[] | rea
     results.push(...f(x));
   }
   return results;
+}
+
+export function isTypeScriptFile(fileName: string): boolean {
+  return fileName.endsWith('.ts');
+}
+
+export function isExternalTemplate(fileName: string): boolean {
+  return !isTypeScriptFile(fileName);
 }

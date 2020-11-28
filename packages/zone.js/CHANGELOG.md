@@ -1,15 +1,41 @@
+<a name="0.11.3"></a>
+## [0.11.3](https://github.com/angular/angular/compare/zone.js-0.11.2...zone.js-0.11.3) (2020-10-27)
+
+
+### Bug Fixes
+
+* **zone.js:** remove global declaration ([#37861](https://github.com/angular/angular/issues/37861)) ([90c0772](https://github.com/angular/angular/commit/90c0772)), closes [#37531](https://github.com/angular/angular/issues/37531)
+
+
+
 <a name="0.11.2"></a>
 ## [0.11.2](https://github.com/angular/angular/compare/zone.js-0.11.0...zone.js-0.11.2) (2020-09-19)
 
 
 ### Bug Fixes
 
+* **zone.js:** jest getRealSystemTime should return native time ([#39127](https://github.com/angular/angular/issues/39127)) ([ffc3332](https://github.com/angular/angular/commit/ffc3332))
 * **zone.js:** add missing types field in package.json ([#38585](https://github.com/angular/angular/issues/38585)) ([27cc56b](https://github.com/angular/angular/commit/27cc56b)), closes [#38584](https://github.com/angular/angular/issues/38584)
 * **zone.js:** defineProperty patch should not swallow error ([#37582](https://github.com/angular/angular/issues/37582)) ([45a73dd](https://github.com/angular/angular/commit/45a73dd)), closes [#37432](https://github.com/angular/angular/issues/37432)
 * **zone.js:** run tests in umd format ([#37582](https://github.com/angular/angular/issues/37582)) ([40096be](https://github.com/angular/angular/commit/40096be))
 * **zone.js:** should have better backward compatibilities ([#38797](https://github.com/angular/angular/issues/38797)) ([a33d630](https://github.com/angular/angular/commit/a33d630)), closes [#38561](https://github.com/angular/angular/issues/38561) [#38669](https://github.com/angular/angular/issues/38669)
 * **zone.js:** should invoke xhr send task when no response error occurs ([#38836](https://github.com/angular/angular/issues/38836)) ([d92a0dd](https://github.com/angular/angular/commit/d92a0dd)), closes [#38795](https://github.com/angular/angular/issues/38795)
 * **zone.js:** zone.js toString patch should check typeof Promise is function ([#38350](https://github.com/angular/angular/issues/38350)) ([18e474f](https://github.com/angular/angular/commit/18e474f)), closes [#38361](https://github.com/angular/angular/issues/38361)
+
+
+### Features
+
+* **zone.js:** add jest fakeTimers support ([#39016](https://github.com/angular/angular/issues/39016)) ([82d54fe](https://github.com/angular/angular/commit/82d54fe)), closes [#38851](https://github.com/angular/angular/issues/38851)
+
+
+### Refactor
+
+* **zone.js:** refactor(zone.js): rename several internal apis in fake async zone spec ([#39127](https://github.com/angular/angular/issues/39127)) ([8a68669](https://github.com/angular/angular/commit/8a68669))
+
+
+### Build
+
+* **zone.js:** build(zone.js): zone.js should output esm format for fesm2015 bundles ([#39203](https://github.com/angular/angular/issues/39203)) ([822b838](https://github.com/angular/angular/commit/822b838))
 
 
 ### BREAKING CHANGES

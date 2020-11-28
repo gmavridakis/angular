@@ -146,6 +146,38 @@ describe('parser', () => {
       });
     });
 
+    describe('property write', () => {
+      it('should parse property writes', () => {
+        checkAction('a.a = 1 + 2');
+        checkAction('this.a.a = 1 + 2', 'a.a = 1 + 2');
+        checkAction('a.a.a = 1 + 2');
+      });
+
+      describe('malformed property writes', () => {
+        it('should recover on empty rvalues', () => {
+          checkActionWithError('a.a = ', 'a.a = ', 'Unexpected end of expression');
+        });
+
+        it('should recover on incomplete rvalues', () => {
+          checkActionWithError('a.a = 1 + ', 'a.a = 1 + ', 'Unexpected end of expression');
+        });
+
+        it('should recover on missing properties', () => {
+          checkActionWithError(
+              'a. = 1', 'a. = 1', 'Expected identifier for property access at column 2');
+        });
+
+        it('should error on writes after a property write', () => {
+          const ast = parseAction('a.a = 1 = 2');
+          expect(unparse(ast)).toEqual('a.a = 1');
+          validate(ast);
+
+          expect(ast.errors.length).toBe(1);
+          expect(ast.errors[0].message).toContain('Unexpected token \'=\'');
+        });
+      });
+    });
+
     describe('method calls', () => {
       it('should parse method calls', () => {
         checkAction('fn()');
@@ -359,6 +391,54 @@ describe('parser', () => {
         checkBinding('true | a', '(true | a)');
         checkBinding('a | b:c | d', '((a | b:c) | d)');
         checkBinding('a | b:(c | d)', '(a | b:(c | d))');
+      });
+
+      describe('should parse incomplete pipes', () => {
+        const cases: Array<[string, string, string, string]> = [
+          [
+            'should parse missing pipe names: end',
+            'a | b | ',
+            '((a | b) | )',
+            'Unexpected end of input, expected identifier or keyword',
+          ],
+          [
+            'should parse missing pipe names: middle',
+            'a | | b',
+            '((a | ) | b)',
+            'Unexpected token |, expected identifier or keyword',
+          ],
+          [
+            'should parse missing pipe names: start',
+            ' | a | b',
+            '(( | a) | b)',
+            'Unexpected token |',
+          ],
+          [
+            'should parse missing pipe args: end',
+            'a | b | c: ',
+            '((a | b) | c:)',
+            'Unexpected end of expression',
+          ],
+          [
+            'should parse missing pipe args: middle',
+            'a | b: | c',
+            '((a | b:) | c)',
+            'Unexpected token |',
+          ],
+          [
+            'should parse incomplete pipe args',
+            'a | b: (a | ) + | c',
+            '((a | b:(a | ) + ) | c)',
+            'Unexpected token |',
+          ],
+        ];
+
+        for (const [name, input, output, err] of cases) {
+          it(name, () => {
+            checkBinding(input, output);
+            expectBindingError(input, err);
+          });
+        }
       });
 
       it('should only allow identifier or keyword as formatter names', () => {
@@ -699,6 +779,14 @@ describe('parser', () => {
         ]);
       });
 
+      it('should report unexpected token when encountering interpolation', () => {
+        const attr = '*ngIf="name && {{name}}"';
+
+        expectParseTemplateBindingsError(
+            attr,
+            'Parser Error: Unexpected token {, expected identifier, keyword, or string at column 10 in [name && {{name}}] in foo.html');
+      });
+
       it('should map variable declaration via "as"', () => {
         const attr =
             '*ngFor="let item; of items | slice:0:1 as collection, trackBy: func; index as i"';
@@ -775,8 +863,7 @@ describe('parser', () => {
 
     it('should support custom interpolation', () => {
       const parser = new Parser(new Lexer());
-      const ast =
-          parser.parseInterpolation('{% a %}', null, 0, {start: '{%', end: '%}'})!.ast as any;
+      const ast = parser.parseInterpolation('{% a %}', '', 0, {start: '{%', end: '%}'})!.ast as any;
       expect(ast.strings).toEqual(['', '']);
       expect(ast.expressions.length).toEqual(1);
       expect(ast.expressions[0].name).toEqual('a');
@@ -898,8 +985,7 @@ describe('parser', () => {
 
   describe('wrapLiteralPrimitive', () => {
     it('should wrap a literal primitive', () => {
-      expect(unparse(validate(createParser().wrapLiteralPrimitive('foo', null, 0))))
-          .toEqual('"foo"');
+      expect(unparse(validate(createParser().wrapLiteralPrimitive('foo', '', 0)))).toEqual('"foo"');
     });
   });
 
@@ -948,17 +1034,25 @@ function parseBinding(text: string, location: any = null, offset: number = 0): A
 }
 
 function parseTemplateBindings(attribute: string, templateUrl = 'foo.html'): TemplateBinding[] {
-  const match = attribute.match(/^\*(.+)="(.*)"$/);
-  expect(match).toBeTruthy(`failed to extract key and value from ${attribute}`);
-  const [_, key, value] = match;
-  const absKeyOffset = 1;  // skip the * prefix
-  const absValueOffset = attribute.indexOf('=') + '="'.length;
-  const parser = createParser();
-  const result =
-      parser.parseTemplateBindings(key, value, templateUrl, absKeyOffset, absValueOffset);
+  const result = _parseTemplateBindings(attribute, templateUrl);
   expect(result.errors).toEqual([]);
   expect(result.warnings).toEqual([]);
   return result.templateBindings;
+}
+
+function expectParseTemplateBindingsError(attribute: string, error: string) {
+  const result = _parseTemplateBindings(attribute, 'foo.html');
+  expect(result.errors[0].message).toEqual(error);
+}
+
+function _parseTemplateBindings(attribute: string, templateUrl: string) {
+  const match = attribute.match(/^\*(.+)="(.*)"$/);
+  expect(match).toBeTruthy(`failed to extract key and value from ${attribute}`);
+  const [_, key, value] = match!;
+  const absKeyOffset = 1;  // skip the * prefix
+  const absValueOffset = attribute.indexOf('=') + '="'.length;
+  const parser = createParser();
+  return parser.parseTemplateBindings(key, value, templateUrl, absKeyOffset, absValueOffset);
 }
 
 function parseInterpolation(text: string, location: any = null, offset: number = 0): ASTWithSource|

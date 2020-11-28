@@ -103,6 +103,8 @@ meta:
 github_api_version: "shadow-cat-preview"
 
 pullapprove_conditions:
+  # For PRs which are still being worked on, either still in draft mode or indicated through WIP in
+  # title or label, PullApprove stays in a pending state until its ready for review.
   - condition: "'WIP' not in title"
     unmet_status: pending
     explanation: "Waiting to send reviews as PR is WIP"
@@ -112,6 +114,10 @@ pullapprove_conditions:
   - condition: "not draft"
     unmet_status: pending
     explanation: "Waiting to send reviews as PR is in draft"
+  # Disable PullApprove on specific PRs by adding the `PullApprove: disable` label
+  - condition: "'PullApprove: disable' not in labels"
+    unmet_status: success
+    explanation: "PullApprove skipped because of 'PullApprove: disable' label"
 
 
 groups:
@@ -186,6 +192,7 @@ groups:
          - IgorMinar               # Igor Minar
          - jbogarthyde             # Judy Bogart
          - jelbourn                # Jeremy Elbourn
+         - jessicajaniuk           # Jessica Janiuk
          - JiaLiPassion            # Jia Li
          - JoostK                  # Joost Koehoorn
          - josephperrott           # Joey Perrott
@@ -323,6 +330,8 @@ groups:
           'aio/content/guide/component-interaction.md',
           'aio/content/examples/component-interaction/**',
           'aio/content/images/guide/component-interaction/**',
+          'aio/content/guide/component-overview.md',
+          'aio/content/examples/component-overview/**',
           'aio/content/guide/component-styles.md',
           'aio/content/guide/view-encapsulation.md',
           'aio/content/examples/component-styles/**',
@@ -341,6 +350,7 @@ groups:
           'aio/content/guide/dynamic-component-loader.md',
           'aio/content/examples/dynamic-component-loader/**',
           'aio/content/images/guide/dynamic-component-loader/**',
+          'aio/content/guide/example-apps-list.md',
           'aio/content/guide/entry-components.md',
           'aio/content/guide/feature-modules.md',
           'aio/content/examples/feature-modules/**',
@@ -368,6 +378,7 @@ groups:
           'aio/content/guide/built-in-template-functions.md',
           'aio/content/examples/built-in-template-functions/**',
           'aio/content/guide/event-binding.md',
+          'aio/content/guide/event-binding-concepts.md',
           'aio/content/examples/event-binding/**',
           'aio/content/guide/interpolation.md',
           'aio/content/examples/interpolation/**',
@@ -377,6 +388,7 @@ groups:
           'aio/content/examples/binding-syntax/**',
           'aio/content/guide/property-binding.md',
           'aio/content/examples/property-binding/**',
+          'aio/content/guide/property-binding-best-practices.md',
           'aio/content/guide/attribute-binding.md',
           'aio/content/examples/attribute-binding/**',
           'aio/content/guide/two-way-binding.md',
@@ -405,6 +417,7 @@ groups:
           'aio/content/guide/structural-directives.md',
           'aio/content/examples/structural-directives/**',
           'aio/content/guide/svg-in-templates.md',
+          'aio/content/guide/style-precedence.md',
           'aio/content/images/guide/structural-directives/**',
           'aio/content/guide/template-statements.md',
           'aio/content/guide/user-input.md',
@@ -418,6 +431,7 @@ groups:
         - atscott
         - ~kara  # do not request reviews from Kara, but allow her to approve PRs
         - mhevery
+        - jessicajaniuk
         # OOO as of 2020-09-28 - pkozlowski-opensource
 
 
@@ -644,7 +658,7 @@ groups:
       - *can-be-global-docs-approved
       - >
         contains_any_globs(files.exclude('packages/compiler-cli/**'), [
-          '**/testing/**',
+          'packages/**/testing/**',
           'aio/content/guide/testing.md',
           'aio/content/guide/test-debugging.md',
           'aio/content/guide/testing-attribute-directives.md',
@@ -945,7 +959,7 @@ groups:
           'aio/content/guide/migration-localize.md',
           'aio/content/guide/migration-module-with-providers.md',
           'aio/content/guide/static-query-migration.md',
-          'aio/content/guide/updating-to-version-10.md',
+          'aio/content/guide/updating-to-version-11.md',
           'aio/content/guide/ivy-compatibility.md',
           'aio/content/guide/ivy-compatibility-examples.md'
           ])
@@ -1011,6 +1025,7 @@ groups:
           ])
     reviewers:
       users:
+        - alan-agius4
         - clydin
         - IgorMinar
         - mgechev
@@ -1103,6 +1118,7 @@ groups:
           '.circleci/**',
           '.devcontainer/**',
           '.github/**',
+          '.husky/**',
           '.ng-dev/**',
           '.vscode/**',
           '.yarn/**',
@@ -1120,6 +1136,7 @@ groups:
           'docs/SAVED_REPLIES.md',
           'docs/TOOLS.md',
           'docs/TRIAGE_AND_LABELS.md',
+          'docs/images/**',
           'goldens/*',
           'modules/*',
           'packages/*',

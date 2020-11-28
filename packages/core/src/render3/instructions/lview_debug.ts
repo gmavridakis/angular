@@ -6,7 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Injector, SchemaMetadata, Type} from '../../core';
+import {Injector} from '../../di/injector';
+import {Type} from '../../interface/type';
+import {SchemaMetadata} from '../../metadata/schema';
 import {Sanitizer} from '../../sanitization/sanitizer';
 import {KeyValueArray} from '../../util/array_utils';
 import {assertDefined} from '../../util/assert';
@@ -17,12 +19,13 @@ import {getInjectorIndex} from '../di';
 import {CONTAINER_HEADER_OFFSET, HAS_TRANSPLANTED_VIEWS, LContainer, MOVED_VIEWS, NATIVE} from '../interfaces/container';
 import {ComponentTemplate, DirectiveDef, DirectiveDefList, PipeDefList, ViewQueriesFunction} from '../interfaces/definition';
 import {NO_PARENT_INJECTOR, NodeInjectorOffset} from '../interfaces/injector';
-import {AttributeMarker, PropertyAliases, TConstants, TContainerNode, TElementNode, TNode as ITNode, TNodeFlags, TNodeProviderIndexes, TNodeType, TNodeTypeAsString} from '../interfaces/node';
+import {AttributeMarker, InsertBeforeIndex, PropertyAliases, TConstants, TContainerNode, TElementNode, TNode as ITNode, TNodeFlags, TNodeProviderIndexes, TNodeType, toTNodeTypeAsString} from '../interfaces/node';
 import {SelectorFlags} from '../interfaces/projection';
 import {LQueries, TQueries} from '../interfaces/query';
-import {RComment, RElement, Renderer3, RendererFactory3, RNode} from '../interfaces/renderer';
+import {Renderer3, RendererFactory3} from '../interfaces/renderer';
+import {RComment, RElement, RNode} from '../interfaces/renderer_dom';
 import {getTStylingRangeNext, getTStylingRangeNextDuplicate, getTStylingRangePrev, getTStylingRangePrevDuplicate, TStylingKey, TStylingRange} from '../interfaces/styling';
-import {CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DebugNode, DECLARATION_VIEW, DestroyHookData, ExpandoInstructions, FLAGS, HEADER_OFFSET, HookData, HOST, INJECTOR, LContainerDebug as ILContainerDebug, LView, LViewDebug as ILViewDebug, LViewDebugRange, LViewDebugRangeContent, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, SANITIZER, T_HOST, TData, TView as ITView, TVIEW, TView, TViewType, TViewTypeAsString} from '../interfaces/view';
+import {CHILD_HEAD, CHILD_TAIL, CLEANUP, CONTEXT, DebugNode, DECLARATION_VIEW, DestroyHookData, FLAGS, HEADER_OFFSET, HookData, HOST, HostBindingOpCodes, INJECTOR, LContainerDebug as ILContainerDebug, LView, LViewDebug as ILViewDebug, LViewDebugRange, LViewDebugRangeContent, LViewFlags, NEXT, PARENT, QUERIES, RENDERER, RENDERER_FACTORY, SANITIZER, T_HOST, TData, TView as ITView, TVIEW, TView, TViewType, TViewTypeAsString} from '../interfaces/view';
 import {attachDebugObject} from '../util/debug_utils';
 import {getParentInjectorIndex, getParentInjectorView} from '../util/injector_utils';
 import {unwrapRNode} from '../util/view_utils';
@@ -115,38 +118,38 @@ function nameSuffix(text: string|null|undefined): string {
  */
 export const TViewConstructor = class TView implements ITView {
   constructor(
-      public type: TViewType,                                //
-      public blueprint: LView,                               //
-      public template: ComponentTemplate<{}>|null,           //
-      public queries: TQueries|null,                         //
-      public viewQuery: ViewQueriesFunction<{}>|null,        //
-      public declTNode: ITNode|null,                         //
-      public data: TData,                                    //
-      public bindingStartIndex: number,                      //
-      public expandoStartIndex: number,                      //
-      public expandoInstructions: ExpandoInstructions|null,  //
-      public firstCreatePass: boolean,                       //
-      public firstUpdatePass: boolean,                       //
-      public staticViewQueries: boolean,                     //
-      public staticContentQueries: boolean,                  //
-      public preOrderHooks: HookData|null,                   //
-      public preOrderCheckHooks: HookData|null,              //
-      public contentHooks: HookData|null,                    //
-      public contentCheckHooks: HookData|null,               //
-      public viewHooks: HookData|null,                       //
-      public viewCheckHooks: HookData|null,                  //
-      public destroyHooks: DestroyHookData|null,             //
-      public cleanup: any[]|null,                            //
-      public contentQueries: number[]|null,                  //
-      public components: number[]|null,                      //
-      public directiveRegistry: DirectiveDefList|null,       //
-      public pipeRegistry: PipeDefList|null,                 //
-      public firstChild: ITNode|null,                        //
-      public schemas: SchemaMetadata[]|null,                 //
-      public consts: TConstants|null,                        //
-      public incompleteFirstPass: boolean,                   //
-      public _decls: number,                                 //
-      public _vars: number,                                  //
+      public type: TViewType,
+      public blueprint: LView,
+      public template: ComponentTemplate<{}>|null,
+      public queries: TQueries|null,
+      public viewQuery: ViewQueriesFunction<{}>|null,
+      public declTNode: ITNode|null,
+      public data: TData,
+      public bindingStartIndex: number,
+      public expandoStartIndex: number,
+      public hostBindingOpCodes: HostBindingOpCodes|null,
+      public firstCreatePass: boolean,
+      public firstUpdatePass: boolean,
+      public staticViewQueries: boolean,
+      public staticContentQueries: boolean,
+      public preOrderHooks: HookData|null,
+      public preOrderCheckHooks: HookData|null,
+      public contentHooks: HookData|null,
+      public contentCheckHooks: HookData|null,
+      public viewHooks: HookData|null,
+      public viewCheckHooks: HookData|null,
+      public destroyHooks: DestroyHookData|null,
+      public cleanup: any[]|null,
+      public contentQueries: number[]|null,
+      public components: number[]|null,
+      public directiveRegistry: DirectiveDefList|null,
+      public pipeRegistry: PipeDefList|null,
+      public firstChild: ITNode|null,
+      public schemas: SchemaMetadata[]|null,
+      public consts: TConstants|null,
+      public incompleteFirstPass: boolean,
+      public _decls: number,
+      public _vars: number,
 
   ) {}
 
@@ -159,10 +162,6 @@ export const TViewConstructor = class TView implements ITView {
   get type_(): string {
     return TViewTypeAsString[this.type] || `TViewType.?${this.type}?`;
   }
-
-  get i18nStartIndex(): number {
-    return HEADER_OFFSET + this._decls + this._vars;
-  }
 };
 
 class TNode implements ITNode {
@@ -170,6 +169,7 @@ class TNode implements ITNode {
       public tView_: TView,                                                          //
       public type: TNodeType,                                                        //
       public index: number,                                                          //
+      public insertBeforeIndex: InsertBeforeIndex,                                   //
       public injectorIndex: number,                                                  //
       public directiveStart: number,                                                 //
       public directiveEnd: number,                                                   //
@@ -177,7 +177,7 @@ class TNode implements ITNode {
       public propertyBindings: number[]|null,                                        //
       public flags: TNodeFlags,                                                      //
       public providerIndexes: TNodeProviderIndexes,                                  //
-      public tagName: string|null,                                                   //
+      public value: string|null,                                                     //
       public attrs: (string|AttributeMarker|(string|SelectorFlags)[])[]|null,        //
       public mergedAttrs: (string|AttributeMarker|(string|SelectorFlags)[])[]|null,  //
       public localNames: (string|number)[]|null,                                     //
@@ -232,7 +232,7 @@ class TNode implements ITNode {
   }
 
   get type_(): string {
-    return TNodeTypeAsString[this.type] || `TNodeType.?${this.type}?`;
+    return toTNodeTypeAsString(this.type) || `TNodeType.?${this.type}?`;
   }
 
   get flags_(): string {
@@ -249,8 +249,13 @@ class TNode implements ITNode {
   }
 
   get template_(): string {
+    if (this.type & TNodeType.Text) return this.value!;
     const buf: string[] = [];
-    buf.push('<', this.tagName || this.type_);
+    const tagName = typeof this.value === 'string' && this.value || this.type_;
+    buf.push('<', tagName);
+    if (this.flags) {
+      buf.push(' ', this.flags_);
+    }
     if (this.attrs) {
       for (let i = 0; i < this.attrs.length;) {
         const attrName = this.attrs[i++];
@@ -263,7 +268,7 @@ class TNode implements ITNode {
     }
     buf.push('>');
     processTNodeChildren(this.child, buf);
-    buf.push('</', this.tagName || this.type_, '>');
+    buf.push('</', tagName, '>');
     return buf.join('');
   }
 
@@ -444,7 +449,7 @@ export class LViewDebug implements ILViewDebug {
     return toHtml(this._raw_lView[HOST], true);
   }
   get html(): string {
-    return (this.nodes || []).map(node => toHtml(node.native, true)).join('');
+    return (this.nodes || []).map(mapToHTML).join('');
   }
   get context(): {}|null {
     return this._raw_lView[CONTEXT];
@@ -458,7 +463,9 @@ export class LViewDebug implements ILViewDebug {
     const tNode = lView[TVIEW].firstChild;
     return toDebugNodes(tNode, lView);
   }
-
+  get template(): string {
+    return (this.tView as any as {template_: string}).template_;
+  }
   get tView(): ITView {
     return this._raw_lView[TVIEW];
   }
@@ -501,21 +508,11 @@ export class LViewDebug implements ILViewDebug {
   }
 
   get vars(): LViewDebugRange {
-    const tView = this.tView;
     return toLViewRange(
-        tView, this._raw_lView, tView.bindingStartIndex,
-        (tView as any as {i18nStartIndex: number}).i18nStartIndex);
-  }
-
-  get i18n(): LViewDebugRange {
-    const tView = this.tView;
-    return toLViewRange(
-        tView, this._raw_lView, (tView as any as {i18nStartIndex: number}).i18nStartIndex,
-        tView.expandoStartIndex);
+        this.tView, this._raw_lView, this.tView.bindingStartIndex, this.tView.expandoStartIndex);
   }
 
   get expando(): LViewDebugRange {
-    const tView = this.tView as any as {_decls: number, _vars: number};
     return toLViewRange(
         this.tView, this._raw_lView, this.tView.expandoStartIndex, this._raw_lView.length);
   }
@@ -531,6 +528,16 @@ export class LViewDebug implements ILViewDebug {
       child = child.next;
     }
     return childViews;
+  }
+}
+
+function mapToHTML(node: DebugNode): string {
+  if (node.type === 'ElementContainer') {
+    return (node.children || []).map(mapToHTML).join('');
+  } else if (node.type === 'IcuContainer') {
+    throw new Error('Not implemented');
+  } else {
+    return toHtml(node.native, true) || '';
   }
 }
 
@@ -575,7 +582,7 @@ export function buildDebugNode(tNode: ITNode, lView: LView): DebugNode {
   }
   return {
     html: toHtml(native),
-    type: TNodeTypeAsString[tNode.type],
+    type: toTNodeTypeAsString(tNode.type),
     native: native as any,
     children: toDebugNodes(tNode.child, lView),
     factories,
@@ -656,19 +663,4 @@ export class LContainerDebug implements ILContainerDebug {
   get next() {
     return toDebug(this._raw_lContainer[NEXT]);
   }
-}
-
-/**
- * Return an `LView` value if found.
- *
- * @param value `LView` if any
- */
-export function readLViewValue(value: any): LView|null {
-  while (Array.isArray(value)) {
-    // This check is not quite right, as it does not take into account `StylingContext`
-    // This is why it is in debug, not in util.ts
-    if (value.length >= HEADER_OFFSET - 1) return value as LView;
-    value = value[HOST];
-  }
-  return null;
 }
