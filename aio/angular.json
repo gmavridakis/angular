@@ -25,7 +25,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/site/browser",
+            "outputPath": "dist",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -170,8 +170,7 @@
               "tsconfig.app.json",
               "tsconfig.spec.json",
               "tsconfig.worker.json",
-              "tests/e2e/tsconfig.json",
-              "tsconfig.server.json"
+              "tests/e2e/tsconfig.json"
             ],
             "exclude": [
               "**/node_modules/**"
@@ -188,46 +187,6 @@
             "ci": {
               "devServerTarget": "site:serve:ci"
             }
-          }
-        },
-        "server": {
-          "builder": "@angular-devkit/build-angular:server",
-          "options": {
-            "outputPath": "dist/site/server",
-            "main": "server.ts",
-            "tsConfig": "tsconfig.server.json"
-          },
-          "configurations": {
-            "production": {
-              "sourceMap": false,
-              "optimization": true
-            }
-          }
-        },
-        "serve-ssr": {
-          "builder": "@nguniversal/builders:ssr-dev-server",
-          "options": {
-            "browserTarget": "site:build",
-            "serverTarget": "site:server"
-          },
-          "configurations": {
-            "production": {
-              "browserTarget": "site:build:production",
-              "serverTarget": "site:server:production"
-            }
-          }
-        },
-        "prerender": {
-          "builder": "@nguniversal/builders:prerender",
-          "options": {
-            "browserTarget": "site:build:stable",
-            "serverTarget": "site:server:production",
-            "routes": [
-              "/"
-            ]
-          },
-          "configurations": {
-            "production": {}
           }
         }
       }

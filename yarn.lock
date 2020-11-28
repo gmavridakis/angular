@@ -184,13 +184,6 @@
     universal-analytics "0.4.20"
     uuid "7.0.2"
 
-"@angular/elements@10.2.1":
-  version "10.2.1"
-  resolved "https://registry.yarnpkg.com/@angular/elements/-/elements-10.2.1.tgz#3d7b4184f6764b4377b8ce6a9ab456e445f4865d"
-  integrity sha512-J4Xr22xVNSJVrS4tORVJ6FpQz9UIr91Aicv1EMiEK5viWhLmXPmvdFHvlxiCc2kqUS0bZRYofsMY4YKmHoDVBA==
-  dependencies:
-    tslib "^2.0.0"
-
 "@babel/cli@^7.8.4":
   version "7.8.4"
   resolved "https://registry.yarnpkg.com/@babel/cli/-/cli-7.8.4.tgz#505fb053721a98777b2b175323ea4f090b7d3c1c"
