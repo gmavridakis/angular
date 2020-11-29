@@ -132,7 +132,7 @@ export const svgIconProviders = [
 
 @NgModule({
   imports: [
-    BrowserModule,
+    BrowserModule.withServerTransition({ appId: 'serverApp' }),
     BrowserAnimationsModule,
     CustomElementsModule,
     HttpClientModule,
